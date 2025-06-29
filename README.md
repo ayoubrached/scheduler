@@ -1,0 +1,1 @@
+To run, type ```python manage.py runserver```
