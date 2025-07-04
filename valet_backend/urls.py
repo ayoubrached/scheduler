@@ -15,8 +15,12 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+
+    # Add this line. It tells Django that any URL starting with 'api/'
+    # should be handled by the urls defined in your schedule app.
+    path('api/', include('schedule.urls')),
 ]

@@ -1,39 +1,48 @@
 # schedule/models.py
 
 from django.db import models
-from datetime import timedelta # <--- ADD THIS IMPORT
+import datetime
 
 class Location(models.Model):
-    name = models.CharField(max_length=100)
-    address = models.CharField(max_length=255, blank=True)
+    name = models.CharField(max_length=100, unique=True)
+    address = models.CharField(max_length=200)
 
     def __str__(self):
         return self.name
 
 class Employee(models.Model):
-    first_name = models.CharField(max_length=50)
-    last_name = models.CharField(max_length=50)
-    phone_number = models.CharField(max_length=15, blank=True)
-    allowed_locations = models.ManyToManyField(Location, blank=True)
+    name = models.CharField(max_length=100)
+    phone_number = models.CharField(max_length=20, blank=True)
+    address = models.CharField(max_length=200, blank=True)
+    # unavailable_days is a string of comma-separated integers e.g. "0,1" for Monday, Tuesday
+    unavailable_days = models.CharField(max_length=20, blank=True)
+    locations = models.ManyToManyField(Location, related_name='employees', blank=True)
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return self.name
+
+class EmployeeAvailability(models.Model):
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='availability')
+    date = models.DateField()
+    start_time = models.TimeField(default=datetime.time(8, 0))
+    end_time = models.TimeField(default=datetime.time(18, 0))
+    is_available = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('employee', 'date')
+
+    def __str__(self):
+        return f"{self.employee.name} on {self.date} {'is available' if self.is_available else 'is not available'}"
 
 class Shift(models.Model):
-    STATUS_CHOICES = [
-        ('CONFIRMED', 'Confirmed'),
-        ('CALLED_OFF', 'Called Off'),
-        ('NO_SHOW', 'No Show'),
-    ]
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
     location = models.ForeignKey(Location, on_delete=models.CASCADE)
-    start_time = models.DateTimeField()
-    # end_time = models.DateTimeField() # <--- REMOVE OR COMMENT OUT THIS LINE
-    
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='CONFIRMED')
+    date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('employee', 'date', 'start_time')
 
     def __str__(self):
-        # Let's make this more descriptive
-        start_date = self.start_time.strftime('%b %d, %Y') # e.g., Jun 25, 2025
-        start_time_formatted = self.start_time.strftime('%I:%M %p') # e.g., 08:00 AM
-        return f"{self.employee} at {self.location} on {start_date} starting at {start_time_formatted}"
+        return f"{self.employee.name} at {self.location.name} on {self.date} from {self.start_time}"
